@@ -1,0 +1,20 @@
+Type this in command
+
+This works for M4
+Pyinstaller --windowed GGNvalidator.py
+
+
+
+-----
+
+Pyinstaller --windowed --target-arch universal2 GGNvalidator.py
+
+Pyinstaller --windowed --target-arch arm64 GGNvalidator.py
+
+
+This works probably for Intel
+Pyinstaller --windowed --target-arch x86_64 GGNvalidator.py
+
+python setup.py py2app --arch universal2
+python setup.py py2app --arch x86_64
+-- to run on M1 and others
