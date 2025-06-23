@@ -5,11 +5,13 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.service import Service
 from time import sleep, time
 import psycopg2
+from datetime import datetime, timezone
+
 
 
 from webdriver_manager.chrome import ChromeDriverManager
 
-def update_database(ggn, expiration_date, certified, countries, tk, output):
+def update_database(ggn, expiration_date, certified, countries, level, link, tk, output):
     def update_data(DATABASE_URL, ggn, expiration_date, certified, countries, tk, output):
         """ delete part by part id """
         conn = None
@@ -32,18 +34,25 @@ def update_database(ggn, expiration_date, certified, countries, tk, output):
             if certified == "Yes" or certified == "Sí":
                 valid = True
 
-            sql = "UPDATE certifications "
-            sql += "SET expiration_date = '" + str(expiration_date) + "'"
-            if expiration_date != "not found":
-                sql += ", valid = " + str(valid).upper() + " "
-            if countries != "not found":
-                sql += ", certification_countries = '" + str(countries).upper() + "' "
-            sql += "FROM farms "
-            sql += "WHERE farms.uid::VARCHAR(255) = certifications.farm_uid::VARCHAR(255) "
-            sql += "AND farms.ggn = '" + ggn + "' "
-            sql += "AND certifications.certification_id = '" + ggn + "' "
+            #understand if certification exists
+            timestamp = datetime.now(timezone.utc)
+
+            sql = "UPDATE certifications SET "
+            sql+= "expiration_date = '"+expiration_date+"',"
+            sql+= "valid = " + str(valid).upper() + ","
+            sql+= "added_by = 'VALIDATOR'," 
+            sql+= "added_date = '" + str(timestamp) +"', "
+            sql+= "link = '"+link+"', " 
+            sql+= "certification_level = '"+level+"',"
+            sql+= "certification_countries = '"+countries+"' "
+            sql+= "WHERE certification = 'GLOBAL GAP' AND certification_id = '"+ggn+"'"
+            
+            print("\n", sql)
             
             cur.execute(sql)
+            # output.insert(tk.END, "\n------> Updated farm: " + farm_code_name[count_farms])
+            # count_farms += 1
+
             
             # get the number of updated rows
             response["rows_updated"] = cur.rowcount
@@ -65,9 +74,9 @@ def update_database(ggn, expiration_date, certified, countries, tk, output):
     DATABASE_URL="postgres://u4t3gtm2ajvhpt:pa7e992d29d7eb9d9bf80cfa24ec8294fa327bded0e2626ed8d72a8756202966e@c3l5o0rb2a6o4l.cluster-czz5s0kz4scl.eu-west-1.rds.amazonaws.com:5432/d4osfble0o2rqi"
     res  = update_data(DATABASE_URL, ggn, expiration_date, certified, countries, tk, output)
     if res["status"] == "success":
-        output.insert(tk.END, " ---> Updated in DB")
+        output.insert(tk.END, "\n------> Updated in DB")
     else:
-        output.insert(tk.END, " ---> Couldn't update in DB")
+        output.insert(tk.END, "\n------> Couldn't update in DB")
 
 def setup(tk, count_output):
 
@@ -93,18 +102,6 @@ def setup(tk, count_output):
     return d
 
 def check_ggn_online(d, ggn):
-
-    # print("identifying search box and query button...")
-    # ggn_box = d.find_element('id', 'content:search:searchFilterTile:_idJsp138')
-    # button = d.find_element('id', 'content:search:searchFilterTile:enterPressedButton')
-
-
-    # print("Querying for", ggn)
-    # ggn_box.clear()
-    # ggn_box.send_keys(ggn)
-    # button.click()
-    # ggn_box.send_keys(Keys.RETURN)
-
     d.get("https://database.globalgap.org/globalgap/search/SearchMain.faces?searchQuery="+str(ggn))
 
     cell_name = "searchTdBorderLeftBorderBottom"
@@ -114,75 +111,55 @@ def check_ggn_online(d, ggn):
     certif = "not found/no"
     countries = "not found/none"
     expiration = "not found/none"
+    level = ""
+    link = ""
     try:
-        # items = d.find_elements("class name", "searchTdBorderLeftBorderBottom")
         items = d.find_elements(By.XPATH, "/html/body/div[2]/div[2]/div/form/div[7]/div/table/tbody/tr[8]/td[10]/table/tbody/tr/td/table/tbody/tr/td")
-        
-        # style = "min-width: 110px; font-weight: bold; color: green; width: 110px;"
+        if len(items) > 0:
 
-        #cell number
-        certif = 5
-        expiration = 6
-        countries = 10
-        link = 11
+            #association or independent
+            level_items = d.find_elements(By.XPATH, "/html/body/div[2]/div[2]/div/form/div[7]/div/table/tbody/tr[1]/td[7]")
+            for l in level_items:
+                level = l.text
 
-        count = 1
-        for i in items:
-           
-            if count == certif:
-                certif = i.text
-                # print(count, i.text)
-                continue
-            if count == expiration:
-                expiration = i.text
-                # print(count, i.text)
-                continue
-            if count == countries:
-                countries = i.text
-                # print(count, i.text)
-                continue
-            # if count == link: doesnt work in global gap site
-            #     link = i.text.split("|")[1]
-            #     print(link)
-            #     print(count, link)
-            #     continue
-            count += 1
+            if level == "ProducerGroup":
+                level = "association"
+            else:
+                level = "independent"
 
-        # print(certif, expiration, countries)
-        #link = items[12-1].innerHTML.split("|")[0]
-        # for i in items:
+            #cell number
+            certif = 5
+            expiration = 6
+            countries = 10
+            link = 11
 
-            # s = i.get_attribute("style")
-            # if s == style:
-            #     certif = i.get_attribute("innerHTML")
-            #     break
-        # print("Done.")
+            count = 1
+            for i in items:
+               
+                if count == certif:
+                    certif = i.text
+                    continue
+                if count == expiration:
+                    expiration = i.text
+                    continue
+                if count == countries:
+                    countries = i.text
+                    continue
+                if count == link:
+                    link = i.text 
+                    if "|" in link:
+                        link = d.find_elements(By.XPATH, "/html/body/div[2]/div[2]/div/form/div[7]/div/table/tbody/tr[8]/td[10]/table/tbody/tr/td/table/tbody/tr/td[13]/a[2]")
+                        link = link[0].get_attribute("href")
+                    else:
+                        link = ""
+
+                count += 1
+            
+
     except Exception as e:
         print("Error:", str(e))
 
-    # expiration = "not found"
-
-    # try:
-    #     items = d.find_elements("class name", "searchTdBorderLeftBorderBottom")
-
-    #     style = "min-width: 120px; width: 120px;"
-    #     index = 2
-    #     start = 0
-    #     for i in items:
-
-    #         s = i.get_attribute("style")
-    #         if s == style:
-
-    #             if start == index:
-    #                 expiration = i.get_attribute("innerHTML")
-    #                 break
-    #             start += 1
-
-    #     # print("Done.")
-    # except Exception as e:
-    #     print("Error:", str(e))
-
-    return {"certified":certif, "expires":expiration, "countries":countries}
+    return {"certified":certif, "expires":expiration, "countries":countries, "level":level, "link":link}
 
 def check_ggns(ggn_list_string, tk, count_output, time_output, output):
     #split
@@ -211,9 +188,9 @@ def check_ggns(ggn_list_string, tk, count_output, time_output, output):
 
         start = time()
         certif = check_ggn_online(d, ggn)
-        output.insert(tk.END, "\n"+str(ggn) + " ---> " + str(certif["certified"]) + " ---> Expires on " + str(certif["expires"]) + " ---> Countries:" + str(certif["countries"]))
-        
-        update_database(ggn, certif["expires"], certif["certified"], certif["countries"], tk, output)
+        output.insert(tk.END, "\n - "+str(ggn) + "\n---> Valid: " + str(certif["certified"]) + "\n---> Expires: " + str(certif["expires"]) + "\n---> Countries: " + str(certif["countries"])  + "\n---> Level: " + str(certif["level"]) + "\n---> Link: " + str(certif["link"]))
+        if certif["certified"] != "not found/no":
+            update_database(ggn, certif["expires"], certif["certified"], certif["countries"], certif["level"], certif["link"], tk, output)
         end = time()
 
         elapsed = round(end - start, 0)
