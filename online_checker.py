@@ -6,12 +6,12 @@ from selenium.webdriver.chrome.service import Service
 from time import sleep, time
 import psycopg2
 from datetime import datetime, timezone
-
+import GGN_new_db as g
 
 
 from webdriver_manager.chrome import ChromeDriverManager
 
-def update_database(ggn, expiration_date, certified, countries, level, link, tk, output):
+def update_database(ggn, expiration_date, certified, countries, level, link, cert_type, tk, output):
     def update_data(DATABASE_URL, ggn, expiration_date, certified, countries, tk, output):
         """ delete part by part id """
         conn = None
@@ -31,7 +31,7 @@ def update_database(ggn, expiration_date, certified, countries, level, link, tk,
 
             expiration_date = expiration_date_split[2] + "-" + expiration_date_split[1] + "-" + expiration_date_split[0]
             valid = False
-            if certified == "Yes" or certified == "Sí":
+            if certified == "Certified":
                 valid = True
 
             #understand if certification exists
@@ -45,7 +45,7 @@ def update_database(ggn, expiration_date, certified, countries, level, link, tk,
             sql+= "link = '"+link+"', " 
             sql+= "certification_level = '"+level+"',"
             sql+= "certification_countries = '"+countries+"' "
-            sql+= "WHERE certification = 'GLOBAL GAP' AND certification_id = '"+ggn+"'"
+            sql+= "WHERE certification = '"+cert_type+"' AND certification_id = '"+ggn+"'"
             
             print("\n", sql)
             
@@ -80,86 +80,48 @@ def update_database(ggn, expiration_date, certified, countries, level, link, tk,
 
 def setup(tk, count_output):
 
-    options = webdriver.ChromeOptions()
-    options.add_argument('--headless')
+    # options = webdriver.ChromeOptions()
+    # options.add_argument('--headless')
     # options.add_argument('window-size=1920x1080')
     # options.add_argument("disable-gpu")
     # OR options.add_argument("--disable-gpu")
 
-    count_output.insert(tk.END, "Opening up chrome... ")
+    # count_output.insert(tk.END, "Opening up chrome... ")
 
     # d = webdriver.Chrome('chromedriver', options=options)
     # d = webdriver.Chrome(options, ChromeDriverManager().install())
-    d = webdriver.Chrome(options=options)
+    # d = webdriver.Chrome(options=options)
 
-    count_output.insert(tk.END, "Navigating to global gap... ")
-    d.get("https://database.globalgap.org/globalgap/search/SearchMain.faces?init=1")
-    count_output.insert(tk.END, "Loading website... ")
-    sleep(3)
+    # count_output.insert(tk.END, "Navigating to global gap... ")
+    # d.get("https://database.globalgap.org/globalgap/search/SearchMain.faces?init=1")
+    # count_output.insert(tk.END, "Loading website... ")
+    # sleep(3)
     
     
     count_output.insert(tk.END, " Ready!")
-    return d
+    return False
 
-def check_ggn_online(d, ggn):
-    d.get("https://database.globalgap.org/globalgap/search/SearchMain.faces?searchQuery="+str(ggn))
+def check_ggn_online_new(ggn):
+    obj = g.check_ggn_new(ggn)
+    level = "independent"
+    if obj["isGroupProducer"] == "false":
+        level = "association"
 
-    cell_name = "searchTdBorderLeftBorderBottom"
-    heading_name = "searchHeadlineProduct searchTdBorderLeft"
+    certifications = []
+    base_link = "https://prod.osapiens.cloud/portal/webbundle/foodplus/field-service-os/supply-chain-portal?app-route-hash=%252Fcertificates%252F"
+    for cert_type in ["GLOBAL GAP", "GRASP"]:
+        cert = obj["certs"][cert_type]
+        if cert!={}:
+            link = cert["link"]
+            countries = cert["countries"]
+            valid = cert["valid"]
+            expiration = cert["validTo"]
+            certification_body = cert["certificationBodyName"]
+            cert_obj = {"valid":valid, "expires":expiration, "countries":countries, "level":level, "link":link, "certification":cert_type, "certification_body":certification_body}
+            certifications.append(cert_obj)
+    
+    return certifications
 
-    heading = "Certified/assessed process"
-    certif = "not found/no"
-    countries = "not found/none"
-    expiration = "not found/none"
-    level = ""
-    link = ""
-    try:
-        items = d.find_elements(By.XPATH, "/html/body/div[2]/div[2]/div/form/div[7]/div/table/tbody/tr[8]/td[10]/table/tbody/tr/td/table/tbody/tr/td")
-        if len(items) > 0:
-
-            #association or independent
-            level_items = d.find_elements(By.XPATH, "/html/body/div[2]/div[2]/div/form/div[7]/div/table/tbody/tr[1]/td[7]")
-            for l in level_items:
-                level = l.text
-
-            if level == "ProducerGroup":
-                level = "association"
-            else:
-                level = "independent"
-
-            #cell number
-            certif = 5
-            expiration = 6
-            countries = 10
-            link = 11
-
-            count = 1
-            for i in items:
-               
-                if count == certif:
-                    certif = i.text
-                    continue
-                if count == expiration:
-                    expiration = i.text
-                    continue
-                if count == countries:
-                    countries = i.text
-                    continue
-                if count == link:
-                    link = i.text 
-                    if "|" in link:
-                        link = d.find_elements(By.XPATH, "/html/body/div[2]/div[2]/div/form/div[7]/div/table/tbody/tr[8]/td[10]/table/tbody/tr/td/table/tbody/tr/td[13]/a[2]")
-                        link = link[0].get_attribute("href")
-                    else:
-                        link = ""
-
-                count += 1
-            
-
-    except Exception as e:
-        print("Error:", str(e))
-
-    return {"certified":certif, "expires":expiration, "countries":countries, "level":level, "link":link}
 
 def check_ggns(ggn_list_string, tk, count_output, time_output, output):
     #split
@@ -187,10 +149,11 @@ def check_ggns(ggn_list_string, tk, count_output, time_output, output):
             continue
 
         start = time()
-        certif = check_ggn_online(d, ggn)
-        output.insert(tk.END, "\n - "+str(ggn) + "\n---> Valid: " + str(certif["certified"]) + "\n---> Expires: " + str(certif["expires"]) + "\n---> Countries: " + str(certif["countries"])  + "\n---> Level: " + str(certif["level"]) + "\n---> Link: " + str(certif["link"]))
-        if certif["certified"] != "not found/no":
-            update_database(ggn, certif["expires"], certif["certified"], certif["countries"], certif["level"], certif["link"], tk, output)
+        certifs = check_ggn_online_new(ggn)
+        output.insert(tk.END, "\n - "+str(ggn))
+        for certif in certifs:
+            output.insert(tk.END, "\n---> Type: " + str(certif["certification"]) + "\n---> Valid: " + str(certif["valid"]) + "\n---> Expires: " + str(certif["expires"]) + "\n---> Countries: " + str(certif["countries"])  + "\n---> Level: " + str(certif["level"]) + "\n---> Link: " + str(certif["link"]))
+            # update_database(ggn, certif["expires"], certif["certified"], certif["countries"], certif["level"], certif["link"], certif["certification"], tk, output)
         end = time()
 
         elapsed = round(end - start, 0)
@@ -198,3 +161,4 @@ def check_ggns(ggn_list_string, tk, count_output, time_output, output):
         elapsed_avg = sum(elapsed_list)/len(elapsed_list)
         time_output.delete('1.0', tk.END)
         time_output.insert(tk.END, "Estimated time left: " + str(round(elapsed_avg * (ggn_num - idx)/60, 2)) +" minutes")
+
