@@ -121,12 +121,13 @@ def check_ggn_new(producerId):
     obj = {"producerId":producerId}
     # clean = re.split(r"\\x[0-9a-fA-F]{2}", safe_text)
     # top, bottom = clean.split(",certificates:")
-
-    top, bottom = re.split(r",certificates..", clean)
+    try:
+        top, bottom = re.split(r",certificates..", clean)
+    except:
+        return False
 
 
     top = top.split(",")
-
     for t in top:
         t = t.replace("|", "")
         t = t.replace("\r", "")
@@ -134,6 +135,7 @@ def check_ggn_new(producerId):
         t = t.replace("\n", "")
         t = t.replace("�", "")
         t = t.replace("!", ":")
+        t = t.replace("::", ":")
         if ":" in t and "producerId" not in t:
             key, val = t.split(":")
             obj[key.strip()] = val.strip()
@@ -203,13 +205,18 @@ def check_ggn_new(producerId):
     base_link = "https://prod.osapiens.cloud/portal/webbundle/foodplus/field-service-os/supply-chain-portal?app-route-hash=%252Fcertificates%252F"
 
     if obj["certs"]["GLOBAL GAP"] != {}:
+        obj["certs"]["GLOBAL GAP"]["certificationBodyName"] = obj["certs"]["GLOBAL GAP"]["certificationBodyName"].replace(",", "")
+        obj["certs"]["GLOBAL GAP"]["certificationBodyName"] = obj["certs"]["GLOBAL GAP"]["certificationBodyName"].replace(" S.A.", "")
         obj["certs"]["GLOBAL GAP"]["link"] = base_link + obj["certs"]["GLOBAL GAP"]["certificateId"]
-        if "CONTROL UNION" in obj["certs"]["GLOBAL GAP"]["certificationBodyName"]:
+
+        if "control union" in obj["certs"]["GLOBAL GAP"]["certificationBodyName"].lower():
             obj["certs"]["GLOBAL GAP"]["certificationBodyName"] = "CONTROL UNION"
 
     if obj["certs"]["GRASP"] != {}:
         obj["certs"]["GRASP"]["link"] = base_link + obj["certs"]["GRASP"]["certificateId"]
-        if "CONTROL UNION" in obj["certs"]["GRASP"]["certificationBodyName"]:
+        obj["certs"]["GRASP"]["certificationBodyName"] = obj["certs"]["GRASP"]["certificationBodyName"].replace(",", "")
+        obj["certs"]["GRASP"]["certificationBodyName"] = obj["certs"]["GRASP"]["certificationBodyName"].replace(" S.A.", "")
+        if "control union" in obj["certs"]["GRASP"]["certificationBodyName"].lower():
             obj["certs"]["GRASP"]["certificationBodyName"] = "CONTROL UNION"
 
     def build_read_certificate_public_payload(cert_id: str) -> bytes:
@@ -235,6 +242,7 @@ def check_ggn_new(producerId):
             b"\x1c\x15\x09\x19\x19\x1b\x00\x00\x00"
         )
 
+    #look at countries only for Global gap
     for cert_type in ["GLOBAL GAP"]:
         if obj["certs"][cert_type] != {}:
             if obj["certs"][cert_type]["valid"]:
@@ -268,10 +276,6 @@ def check_ggn_new(producerId):
                 clean = clean.replace("value", "|")
                 clean = clean.replace("|","")
                 clean = clean.replace('"',"")
-                clean = clean.replace('UNITED STATES',"USA")
-                clean = clean.replace('United States',"USA")
-                clean = clean.replace('United states',"USA")
-                clean = clean.replace('united states',"USA")
                 clean = clean.replace('European Union',"EU")
                 clean = clean.replace('European union',"EU")
                 clean = clean.replace('european union',"EU")
@@ -299,7 +303,7 @@ def check_ggn_new(producerId):
                     new_dest_countries.append(c)
 
                 new_dest_countries = set(new_dest_countries)
-                new_dest_countries = str(new_dest_countries).replace("{","").replace("}","").replace("'",)
+                new_dest_countries = str(new_dest_countries).replace("{","").replace("}","").replace("'","")
 
                 obj["certs"][cert_type]["countries"] = new_dest_countries
             else:
@@ -307,7 +311,10 @@ def check_ggn_new(producerId):
 
         if obj["certs"]["GRASP"] != {}:
             obj["certs"]["GRASP"]["countries"] = ""
+
     return obj
 
+from pprint import pprint
+# pprint(check_ggn_new(4049929695917))
+# pprint(check_ggn_new(4063651852288))
 
-# print(check_ggn_new(4063651893021))

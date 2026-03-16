@@ -54,6 +54,9 @@ time_output = tk.Text(window, height=2)
 output = tk.Text(window, height=15, width=100)
 scrollbar = tk.Scrollbar(window)
 
+output.tag_config('add', background="yellow", foreground="red")
+output.tag_config('added', background="green", foreground="black")
+
 button_start = tk.Button(
     text="START",
     width=10,
