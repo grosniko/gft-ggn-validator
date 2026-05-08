@@ -50,7 +50,7 @@ def update_database(ggn, expiration_date, valid, countries, level, link, cert_ty
                 sql+= "added_date = '" + str(timestamp) +"', "
                 sql+= "link = '"+link+"', " 
                 sql+= "certification_level = '"+level+"',"
-                sql+= "certification_countries = '"+countries+"', "
+                # sql+= "certification_countries = '"+countries+"', "
                 sql+= "certification_body = '"+cert_body+"' "
                 sql+= "WHERE certification = '"+cert_type+"' AND certification_id = '"+ggn+"'"
 
