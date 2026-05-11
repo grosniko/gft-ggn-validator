@@ -155,6 +155,7 @@ def setup(tk, count_output):
 
 def check_ggn_online_new(ggn):
     obj = g.check_ggn_new(ggn)
+
     if obj == False:
         certifications = False
     else:

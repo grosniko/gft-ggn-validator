@@ -1,7 +1,7 @@
 Type this in command
 
 This works for M4
-Pyinstaller --windowed GGNvalidator.py
+Pyinstaller --windowed GGNvalidator.py --> this one works 11/05/2026
 
 
 

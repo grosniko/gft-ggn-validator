@@ -157,7 +157,21 @@ def check_ggn_new(producerId):
             t = t.replace("::", ":")
             if ":" in t:
                 t = t.replace(":certificateId","certificateId")
+                t = t.replace(":certificateRootId","certificateRootId")
+                t = t.replace(":farmAssuranceProduct","farmAssuranceProduct")
+                t = t.replace(":status","status")
+                t = t.replace(":statusColor","statusColor")
+                t = t.replace(":statusId","statusId")
+                t = t.replace(":certificateReasonId","certificateReasonId")
+                t = t.replace(":validTo","validTo")
                 t = t.replace(":certificationBodyId","certificationBodyId")
+                t = t.replace(":certificationBodyName","certificationBodyName")
+                t = t.replace(":lastChange","lastChange")
+                t = t.replace(":isCertificateVisible","isCertificateVisible")
+                t = t.replace(":isAuditVisible","isAuditVisible")
+                t = t.replace(":producerGroupId","producerGroupId")
+                t = t.replace(":producerGroupName","producerGroupName")
+
                 key, val = t.split(":")
                 if key != "":
                     val = val.replace("-Integrated","Integrated")
@@ -209,6 +223,7 @@ def check_ggn_new(producerId):
         obj["certs"]["GLOBAL GAP"]["certificationBodyName"] = obj["certs"]["GLOBAL GAP"]["certificationBodyName"].replace(",", "")
         obj["certs"]["GLOBAL GAP"]["certificationBodyName"] = obj["certs"]["GLOBAL GAP"]["certificationBodyName"].replace(" S.A.", "")
         obj["certs"]["GLOBAL GAP"]["link"] = base_link + obj["certs"]["GLOBAL GAP"]["certificateId"]
+        obj["certs"]["GLOBAL GAP"]["countries"] = ""
 
         if "control union" in obj["certs"]["GLOBAL GAP"]["certificationBodyName"].lower():
             obj["certs"]["GLOBAL GAP"]["certificationBodyName"] = "CONTROL UNION"
@@ -217,6 +232,7 @@ def check_ggn_new(producerId):
         obj["certs"]["GRASP"]["link"] = base_link + obj["certs"]["GRASP"]["certificateId"]
         obj["certs"]["GRASP"]["certificationBodyName"] = obj["certs"]["GRASP"]["certificationBodyName"].replace(",", "")
         obj["certs"]["GRASP"]["certificationBodyName"] = obj["certs"]["GRASP"]["certificationBodyName"].replace(" S.A.", "")
+        obj["certs"]["GRASP"]["countries"] = ""
         if "control union" in obj["certs"]["GRASP"]["certificationBodyName"].lower():
             obj["certs"]["GRASP"]["certificationBodyName"] = "CONTROL UNION"
 
@@ -244,8 +260,7 @@ def check_ggn_new(producerId):
         )
 
     #bug on the website for the countries, until this is not fixed use below line
-    obj["certs"]["GLOBAL GAP"]["countries"] = ""
-    obj["certs"]["GRASP"]["countries"] = ""
+    
 
     #when fixed, remove above line and uncomment below and uncomment line 53 in online checker
 
