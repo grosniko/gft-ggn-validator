@@ -146,6 +146,7 @@ def check_ggn_new(producerId):
     for idx in range(0,len(certs)-1):
         certif_obj = {}
         cert_split = certs[idx].split(",")
+        print(cert_split)
         for t in cert_split:
             t = t.replace("|-", ":")
             t = t.replace("|", "")
@@ -171,16 +172,17 @@ def check_ggn_new(producerId):
                 t = t.replace(":isAuditVisible","isAuditVisible")
                 t = t.replace(":producerGroupId","producerGroupId")
                 t = t.replace(":producerGroupName","producerGroupName")
-
-                key, val = t.split(":")
-                if key != "":
-                    val = val.replace("-Integrated","Integrated")
-                    val = val.replace("$","")
-                    val = val.replace(")","")
-                    val = val.replace("(","")
-                    certif_obj[key.strip()] = val.strip()
-                    if key == "validTo" or key == "lastChange":
-                        certif_obj[key.strip()] = datetime.fromtimestamp(int(val.strip())/1000)
+                t = t.replace(":dateOfIssue","dateOfIssue")
+                if ":" in t:
+                    key, val = t.split(":")
+                    if key != "":
+                        val = val.replace("-Integrated","Integrated")
+                        val = val.replace("$","")
+                        val = val.replace(")","")
+                        val = val.replace("(","")
+                        certif_obj[key.strip()] = val.strip()
+                        if key == "validTo" or key == "lastChange":
+                            certif_obj[key.strip()] = datetime.fromtimestamp(int(val.strip())/1000)
         
         if "IFA" in certif_obj["farmAssuranceProduct"]:
             obj["certs"]["GLOBAL GAP"].append(certif_obj)
@@ -204,7 +206,7 @@ def check_ggn_new(producerId):
 
                 cert["valid"] = False
                 if now <= cert["validTo"]:
-                    if cert["status"] == "Certified" or cert["status"] == "Extended":
+                    if cert["status"] == "Certified" or cert["status"] == "Extended": #or cert["status"] == "Assessed":
                         cert["valid"] = True
                 if last_valid == False:
                     best_certs[cert_type] = cert
