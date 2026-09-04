@@ -62,6 +62,8 @@ countries = {'afghanistan': {'code': 'AFG', 'eu': False},
  'dominica': {'code': 'DMA', 'eu': False},
  'dominican republic': {'code': 'DOM', 'eu': False},
  'ecuador': {'code': 'ECU', 'eu': False},
+ 'ecu': {'code': 'ECU', 'eu': False},
+ "eu":{'code': 'EU', "eu":True},
  'egypt': {'code': 'EGY', 'eu': False},
  'el salvador': {'code': 'SLV', 'eu': False},
  'equatorial guinea': {'code': 'GNQ', 'eu': False},
@@ -188,6 +190,7 @@ countries = {'afghanistan': {'code': 'AFG', 'eu': False},
  'russia': {'code': 'RUS', 'eu': False},
  'rwanda': {'code': 'RWA', 'eu': False},
  'réunion': {'code': 'REU', 'eu': False},
+ 'reunion': {'code': 'REU', 'eu': False},
  'saint barthélemy': {'code': 'BLM', 'eu': False},
  'saint helena, ascension and tristan da cunha': {'code': 'SHN', 'eu': False},
  'saint kitts and nevis': {'code': 'KNA', 'eu': False},
@@ -255,7 +258,9 @@ countries = {'afghanistan': {'code': 'AFG', 'eu': False},
  'yemen': {'code': 'YEM', 'eu': False},
  'zambia': {'code': 'ZMB', 'eu': False},
  'zimbabwe': {'code': 'ZWE', 'eu': False},
- 'åland islands': {'code': 'ALA', 'eu': False}}
+ 'åland islands': {'code': 'ALA', 'eu': False},
+ 'aland islands': {'code': 'ALA', 'eu': False},
+ }
 
 def fetch_countries():
     return countries

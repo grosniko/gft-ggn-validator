@@ -146,7 +146,7 @@ def check_ggn_new(producerId):
     for idx in range(0,len(certs)-1):
         certif_obj = {}
         cert_split = certs[idx].split(",")
-        print(cert_split)
+
         for t in cert_split:
             t = t.replace("|-", ":")
             t = t.replace("|", "")
@@ -267,79 +267,91 @@ def check_ggn_new(producerId):
     #when fixed, remove above line and uncomment below and uncomment line 53 in online checker
 
     #look at countries only for Global gap
-    # for cert_type in ["GLOBAL GAP"]:
-    #     if obj["certs"][cert_type] != {}:
-    #         if obj["certs"][cert_type]["valid"]:
-    #             cert_id = obj["certs"][cert_type]["certificateId"]
+    for cert_type in ["GLOBAL GAP"]:
+        if obj["certs"][cert_type] != {}:
+            if obj["certs"][cert_type]["valid"]:
+                cert_id = obj["certs"][cert_type]["certificateId"]
     
-    #             headers = {
-    #                 "accept": "*/*",
-    #                 "accept-language": "en-GB,en-US;q=0.9,en;q=0.8",
-    #                 "origin": "https://prod.osapiens.cloud",
-    #                 "referer": f"https://prod.osapiens.cloud/portal/webbundle/foodplus/field-service-os/supply-chain-portal?app-route-hash=%252Fcertificates%252F{cert_id}",
-    #                 "x-csrf-token": csrf_token,
-    #                 "content-type": "application/octet-stream"
-    #             }
+                headers = {
+                    "accept": "*/*",
+                    "accept-language": "en-GB,en-US;q=0.9,en;q=0.8",
+                    "origin": "https://prod.osapiens.cloud",
+                    "referer": f"https://prod.osapiens.cloud/portal/webbundle/foodplus/field-service-os/supply-chain-portal?app-route-hash=%252Fcertificates%252F{cert_id}",
+                    "x-csrf-token": csrf_token,
+                    "content-type": "application/octet-stream"
+                }
                 
-    #             live_payload = build_read_certificate_public_payload(cert_id)
-    #             print(live_payload)
-    #             resp = session.post(
-    #                 f"{BASE}/portal/rpc",
-    #                 headers=headers,
-    #                 data=live_payload,
-    #                 timeout=30,
-    #             )
-    #             safe_text = "".join(
-    #                 ch if ch >= " " or ch in "\n\r\t" else f"\\x{ord(ch):02x}"
-    #                 for ch in resp.text
-    #             )
+                live_payload = build_read_certificate_public_payload(cert_id)
+                # print(live_payload)
+                resp = session.post(
+                    f"{BASE}/portal/rpc",
+                    headers=headers,
+                    data=live_payload,
+                    timeout=30,
+                )
+                safe_text = "".join(
+                    ch if ch >= " " or ch in "\n\r\t" else f"\\x{ord(ch):02x}"
+                    for ch in resp.text
+                )
 
-    #             clean = re.sub(r"\\x[0-9a-fA-F]{2}", "|", safe_text)
-    #             print(clean)
-    #             clean = clean.split("Countries of destination:one or multiple countries")[1]
-    #             clean = re.split(r"\|\|\|\|\|\|.", clean)[2]
-    #             clean = clean.replace("value", "|")
-    #             clean = clean.replace("|","")
-    #             clean = clean.replace('"',"")
-    #             clean = clean.replace('European Union',"EU")
-    #             clean = clean.replace('European union',"EU")
-    #             clean = clean.replace('european union',"EU")
-    #             clean = clean.replace('EUROPEAN UNION',"EU")
-    #             clean = clean.replace(', EC',", ECU")
-    #             clean = clean.replace('EC,',"ECU,")
-    #             clean = clean.replace('ECUADOR',"ECU")
-    #             clean = clean.replace('Ecuador',"ECU")
-    #             clean = clean.replace('ecuador',"ECU")
-    #             clean = clean.strip()
-    #             #convert to three letters for countries
-    #             country_list = country.fetch_countries()
-    #             dest_countries = clean.split(",")
+                clean = re.sub(r"\\x[0-9a-fA-F]{2}", "|", safe_text)
 
-    #             new_dest_countries = []
-    #             for idx, c in enumerate(dest_countries):
-    #                 c = c.strip()
-    #                 if len(c) > 3:
-    #                     c = c.lower()
-    #                     if country_list[c]["eu"] == True:
-    #                         c = "EU"
-    #                     else:
-    #                         c = country_list[c]["code"]
+                if "multiple countries" in clean:
+                    clean = clean.split("multiple countries")[1]
+                    clean = clean.split("value")[1]
+                else:
+                    clean = clean.split("group members")[1]  
 
-    #                 new_dest_countries.append(c)
+                clean_left, clean_right = clean.split(",", 1)
+                clean_left = re.split(r"\|",clean_left)[-1]
+                clean_right= re.split(r"\|",clean_right)[0]
+                clean = clean_left + "," + clean_right
 
-    #             new_dest_countries = set(new_dest_countries)
-    #             new_dest_countries = str(new_dest_countries).replace("{","").replace("}","").replace("'","")
+                clean = clean.replace('European Union',"EU")
+                clean = clean.replace('European union',"EU")
+                clean = clean.replace('european union',"EU")
+                clean = clean.replace('EUROPEAN UNION',"EU")
+                clean = clean.replace(', EC',", ECU")
+                clean = clean.replace('EC,',"ECU,")
+                clean = clean.replace('ECUADOR',"ECU")
+                clean = clean.replace('Ecuador',"ECU")
+                clean = clean.replace('ecuador',"ECU")
+                clean = clean.replace('.',"")
+                clean = re.sub("\d","",clean)
+                clean = clean.strip()
 
-    #             obj["certs"][cert_type]["countries"] = new_dest_countries
-    #         else:
-    #             obj["certs"][cert_type]["countries"] = ""
+                #convert to three letters for countries
+                country_list = country.fetch_countries()
 
-    #     if obj["certs"]["GRASP"] != {}:
-    #         obj["certs"]["GRASP"]["countries"] = ""
+                dest_countries = clean.split(",")
+
+                new_dest_countries = []
+                for idx, c in enumerate(dest_countries):
+                    c = c.strip()
+                    if len(c) > 3:
+                        c = c.lower()
+                        if c not in list(country_list.keys()):
+                        # if its not in the country list then first letter is artifact
+                            c = c[1:len(c)]
+                        
+                        if country_list[c]["eu"] == True:
+                            c = "EU"
+                        else:
+                            c = country_list[c]["code"]
+
+                    new_dest_countries.append(c)
+
+                new_dest_countries = set(new_dest_countries)
+                new_dest_countries = str(new_dest_countries).replace("{","").replace("}","").replace("'","")
+
+                obj["certs"][cert_type]["countries"] = new_dest_countries
+            else:
+                obj["certs"][cert_type]["countries"] = ""
+
+        if obj["certs"]["GRASP"] != {}:
+            obj["certs"]["GRASP"]["countries"] = ""
 
     return obj
 
 from pprint import pprint
-# pprint(check_ggn_new(4049929695917))
-# pprint(check_ggn_new(4063651852288))
 
